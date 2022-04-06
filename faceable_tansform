@@ -1,0 +1,75 @@
+import pandas as pd
+import numpy as np 
+import datetime
+
+transactions = pd.read_csv('/Users/michaelcolellajensen/Downloads/transactions.csv')
+print(transactions.columns)
+
+q1 = transactions[['id', 'q1_sales_2020', 'q1_date_2020']][transactions['q1_date_2020'] == '2020-01-01']
+q2 = transactions[['id', 'q2_sales_2020', 'q2_date_2020']][transactions['q2_date_2020'] == '2020-04-01']
+q3 = transactions[['id', 'q3_sales_2020', 'q3_date_2020']][transactions['q3_date_2020'] == '2020-07-01']
+q4 = transactions[['id', 'q4_sales_2020', 'q4_date_2020']][transactions['q4_date_2020'] == '2020-10-01']
+q5 = transactions[['id', 'q1_sales_2021', 'q1_date_2021']][transactions['q1_date_2021'] == '2021-01-01']
+q6 = transactions[['id', 'q2_sales_2021', 'q2_date_2021']][transactions['q2_date_2021'] == '2021-04-01']
+q7 = transactions[['id', 'q3_sales_2021', 'q3_date_2021']][transactions['q3_date_2021'] == '2021-07-01']
+q8 = transactions[['id', 'q4_sales_2021', 'q4_date_2021']][transactions['q4_date_2021'] == '2021-10-01']
+dfs = [q1, q2, q3, q4, q5, q6, q7, q8]
+q1.rename(columns={'id': 'id',
+                   'q1_sales_2020': 'sales',
+                   'q1_date_2020': 'date'}, 
+          inplace=True)
+q2.rename(columns={'id': 'id',
+                   'q2_sales_2020': 'sales',
+                   'q2_date_2020': 'date'}, 
+          inplace=True)
+q3.rename(columns={'id': 'id',
+                   'q3_sales_2020': 'sales',
+                   'q3_date_2020': 'date'}, 
+          inplace=True)
+q4.rename(columns={'id': 'id',
+                   'q4_sales_2020': 'sales',
+                   'q4_date_2020': 'date'}, 
+          inplace=True)
+q5.rename(columns={'id': 'id',
+                   'q1_sales_2021': 'sales',
+                   'q1_date_2021': 'date'}, 
+          inplace=True)
+q6.rename(columns={'id': 'id',
+                   'q2_sales_2021': 'sales',
+                   'q2_date_2021': 'date'}, 
+          inplace=True)
+q7.rename(columns={'id': 'id',
+                   'q3_sales_2021': 'sales',
+                   'q3_date_2021': 'date'}, 
+          inplace=True)
+q8.rename(columns={'id': 'id',
+                   'q4_sales_2021': 'sales',
+                   'q4_date_2021': 'date'}, 
+          inplace=True)
+transactions_detail = pd.concat(dfs, ignore_index=True)
+print(transactions_detail.shape)
+
+customer_total_data = pd.read_csv('/Users/michaelcolellajensen/Downloads/cust_total_sales.csv')
+print(customer_total_data.columns)
+customer_data = customer_total_data[['id', 'fastener_cust', 'rfm_score']]
+customers = pd.read_excel('/Users/michaelcolellajensen/Downloads/2022 Fastenal Sales Data.xlsx', 1)
+customers.rename(columns = {'BUHierarchy-Customer':'id',
+                            'BU Hierarchy - District':'district',
+                            'BU Hierarchy - Branch':'branch',
+                            'Marketing Code Hierarchy - Marketing Code 1':'industry',
+                            'Marketing Code Hierarchy - Marketing Code 2':'market',
+                            'Marketing Code Hierarchy - Marketing Code 3':'description'}, 
+                 inplace=True)
+                 
+customer_data = customer_data.merge(customers, how='left', on='id')
+customer_transactions = transactions_detail.merge(customer_data, how='left', on='id')
+print(customer_transactions.columns)
+
+customer_transactions = customer_transactions[['id', 
+                                                'sales' , 'date', 
+                                                'fastener_cust', 
+                                                'rfm_score', 
+                                                'district', 'branch', 
+                                                'industry', 'market', 
+                                                'description']]
+print(customer_transactions.shape)
