@@ -1,0 +1,118 @@
+import pandas as pd
+import numpy as np
+import statsmodels
+import matplotlib.pyplot as plt
+import seaborn as sns
+from datetime import date
+
+data = pd.read_csv('/Users/michaelcolellajensen/Downloads/cust_total_sales.csv')
+print(data.columns, data.shape)
+
+from functools import reduce
+data_q1 = data[['id', 'q1_sales_2020']][data['q1_sales_2020'] >0]
+data_q1 = data_q1.assign(q1_date = date(2020, 1, 1))
+data_q2 = data[['id', 'q2_sales_2020']][data['q2_sales_2020'] >0]
+data_q2 = data_q2.assign(q2_date = date(2020, 4, 1))
+data_q3 = data[['id', 'q3_sales_2020']][data['q3_sales_2020'] >0]
+data_q3 = data_q3.assign(q3_date = date(2020, 7, 1))
+data_q4 = data[['id', 'q4_sales_2020']][data['q4_sales_2020'] >0]
+data_q4 = data_q4.assign(q4_date = date(2020, 10, 1))
+data_q1_21 = data[['id', 'q1_sales_2021']][data['q1_sales_2021'] >0]
+data_q1_21 = data_q1_21.assign(q1_date = date(2021, 1, 1))
+data_q2_21 = data[['id', 'q2_sales_2021']][data['q2_sales_2021'] >0]
+data_q2_21 = data_q2_21.assign(q2_date = date(2021, 4, 1))
+data_q3_21 = data[['id', 'q3_sales_2021']][data['q3_sales_2021'] >0]
+data_q3_21 = data_q3_21.assign(q3_date = date(2021, 7, 1))
+data_q4_21 = data[['id', 'q4_sales_2021']][data['q4_sales_2021'] >0]
+data_q4_21 = data_q4_21.assign(q4_date = date(2021, 10, 1))
+dfs = [data_q1,
+      data_q2,
+      data_q3,
+      data_q4,
+      data_q1_21,
+      data_q2_21,
+      data_q3_21,
+      data_q4_21]
+transactions = reduce(lambda left,right: pd.merge(left,right,
+                                                   on=['id'],
+                                                   how='outer',
+                                                   suffixes=['_2020', '_2021']),
+                      dfs)
+                      
+ transactions.replace(np.nan, 0, inplace=True)
+condlist = [(transactions['q1_sales_2020'] > 0),
+            ((transactions['q2_sales_2020'] > 0)& 
+             (transactions['q1_sales_2020'] <= 0)),
+            ((transactions['q3_sales_2020'] > 0)&
+             (transactions['q1_sales_2020'] <= 0)&
+             (transactions['q2_sales_2020'] <= 0)),
+            ((transactions['q4_sales_2020'] > 0)&
+             (transactions['q1_sales_2020'] <= 0)&
+             (transactions['q2_sales_2020'] <= 0)&
+             (transactions['q3_sales_2020'] <= 0)),
+            ((transactions['q1_sales_2021'] > 0)&
+             (transactions['q1_sales_2020'] <= 0)&
+             (transactions['q2_sales_2020'] <= 0)&
+             (transactions['q3_sales_2020'] <= 0)&
+             (transactions['q4_sales_2020'] <= 0)),
+            ((transactions['q2_sales_2021'] > 0)&
+             (transactions['q1_sales_2020'] <= 0)&
+             (transactions['q2_sales_2020'] <= 0)&
+             (transactions['q3_sales_2020'] <= 0)&
+             (transactions['q4_sales_2020'] <= 0)&
+             (transactions['q1_sales_2021'] <= 0)),
+            ((transactions['q3_sales_2021'] > 0)&
+             (transactions['q1_sales_2020'] <= 0)&
+             (transactions['q2_sales_2020'] <= 0)&
+             (transactions['q3_sales_2020'] <= 0)&
+             (transactions['q4_sales_2020'] <= 0)&
+             (transactions['q1_sales_2021'] <= 0)&
+             (transactions['q2_sales_2021'] <= 0)),
+            ((transactions['q3_sales_2021'] > 0)&
+             (transactions['q1_sales_2020'] <= 0)&
+             (transactions['q2_sales_2020'] <= 0)&
+             (transactions['q3_sales_2020'] <= 0)&
+             (transactions['q4_sales_2020'] <= 0)&
+             (transactions['q1_sales_2021'] <= 0)&
+             (transactions['q2_sales_2021'] <= 0)&
+             (transactions['q3_sales_2021'] <= 0))]
+
+choicelist = [date(2020, 1, 1),
+              date(2020, 4, 1),
+              date(2020, 7, 1),
+              date(2020, 10, 1),
+              date(2021, 1, 1),
+              date(2021, 4, 1),
+              date(2021, 7, 1),
+              date(2021, 10, 1)]
+
+default = pd.NA
+
+transactions['first_order'] = np.select(condlist, choicelist, default)
+summary = transactions.groupby('first_order').nunique('id')
+summary.drop(['q1_date_2020', 
+              'q2_date_2020', 
+              'q3_date_2020', 
+              'q4_date_2020',
+              'q1_date_2021',
+              'q2_date_2021',
+              'q3_date_2021',
+              'q4_date_2021'], axis=1, inplace=True)
+summary.replace(1, 0, inplace=True)
+summary.to_csv('/Users/michaelcolellajensen/Downloads/cohorts.csv')
+
+cohort_size = [16266, 4110, 2950, 1854, 1494, 1544, 1348]
+retention = summary.divide(cohort_size, axis=0)
+retention.drop('id', axis=1, inplace=True)
+retention.round(decimals=3)
+
+#heatmap 
+plt.figure(figsize=(10,8))
+plt.title('Retention')
+sns.heatmap(data=retention, 
+            annot= True,
+            fmt='.0%',
+            vmin=0.0,
+            vmax=0.8,
+            cmap='PuBu')
+plt.show()
